@@ -23,4 +23,16 @@ const getDetail = (id) => ({
   author: 'Lux',
 });
 
-module.exports = { getList, getDetail };
+const newBlog = (blogData = {}) => ({
+  id: 3,
+});
+
+const updateBlog = (id, blogData = {}) => {
+  return true;
+};
+
+const deleteBlog = (id) => {
+  return true;
+};
+
+module.exports = { getList, getDetail, newBlog, updateBlog, deleteBlog };
