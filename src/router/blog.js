@@ -7,6 +7,12 @@ const {
 } = require('../controller/blog');
 const { SuccessModel, ErrorModel } = require('../model/resModel');
 
+const loginCheck = (req) => {
+  if (!req.session.username) {
+    return Promise.resolve(new ErrorModel('Not login'));
+  }
+};
+
 const handleBlogRouter = (req, res) => {
   const method = req.method;
   const id = req.query.id;
@@ -28,7 +34,12 @@ const handleBlogRouter = (req, res) => {
   }
 
   if (method === 'POST' && req.path === '/api/blog/new') {
-    req.body.author = 'lux';
+    const loginCheckResult = loginCheck(req);
+    if (loginCheckResult) {
+      return loginCheckResult;
+    }
+
+    req.body.author = req.session.username;
 
     const result = newBlog(req.body);
     return result.then((data) => {
@@ -37,6 +48,11 @@ const handleBlogRouter = (req, res) => {
   }
 
   if (method === 'POST' && req.path === '/api/blog/update') {
+    const loginCheckResult = loginCheck(req);
+    if (loginCheckResult) {
+      return loginCheckResult;
+    }
+
     const result = updateBlog(id, req.body);
     return result.then((data) => {
       if (data) {
@@ -48,7 +64,12 @@ const handleBlogRouter = (req, res) => {
   }
 
   if (method === 'POST' && req.path === '/api/blog/delete') {
-    const author = 'lux';
+    const loginCheckResult = loginCheck(req);
+    if (loginCheckResult) {
+      return loginCheckResult;
+    }
+
+    const author = req.session.username;
 
     const result = deleteBlog(id, author);
     return result.then((data) => {

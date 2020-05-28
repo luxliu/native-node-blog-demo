@@ -2,8 +2,7 @@ const queryString = require('querystring');
 
 const handleBlogRouter = require('./src/router/blog');
 const handleUserRouter = require('./src/router/user');
-
-const SESSION_DATA = {};
+const { set, get } = require('./src/db/redis');
 
 const getPostData = (req) => {
   const promise = new Promise((resolve, reject) => {
@@ -61,53 +60,61 @@ const serverHandle = (req, res) => {
   // attach session
   let needSetCookie = false;
   let userId = req.cookie.userid;
-  if (userId) {
-    if (!SESSION_DATA[userId]) {
-      SESSION_DATA[userId] = {};
-    }
-  } else {
+  if (!userId) {
     needSetCookie = true;
     userId = `${Date.now()}_${Math.random()}`;
-    SESSION_DATA[userId] = {};
+    console.log('userId: ', userId);
   }
-  req.session = SESSION_DATA[userId];
 
-  getPostData(req).then((postData) => {
-    req.body = postData;
+  req.sessionId = userId;
+  get(req.sessionId)
+    .then((sessionData) => {
+      if (!sessionData) {
+        set(req.sessionId, {});
+        req.session = {};
+      } else {
+        req.session = sessionData;
+      }
 
-    const blogResult = handleBlogRouter(req, res);
-    if (blogResult) {
-      blogResult.then((blogData) => {
-        if (needSetCookie) {
-          res.setHeader(
-            'Set-Cookie',
-            `userid=${userId}; path=/; httpOnly; expires=${getCookieExpires()}`
-          );
-        }
-        return res.end(JSON.stringify(blogData));
-      });
+      return getPostData(req);
+    })
+    .then((postData) => {
+      req.body = postData;
 
-      return;
-    }
+      const blogResult = handleBlogRouter(req, res);
+      if (blogResult) {
+        blogResult.then((blogData) => {
+          if (needSetCookie) {
+            res.setHeader(
+              'Set-Cookie',
+              `userid=${userId}; path=/; httpOnly; expires=${getCookieExpires()}`
+            );
+          }
+          return res.end(JSON.stringify(blogData));
+        });
 
-    const userResult = handleUserRouter(req, res);
-    if (userResult) {
-      userResult.then((userData) => {
-        if (needSetCookie) {
-          res.setHeader(
-            'Set-Cookie',
-            `userid=${userId}; path=/; httpOnly; expires=${getCookieExpires()}`
-          );
-        }
-        return res.end(JSON.stringify(userData));
-      });
+        return;
+      }
 
-      return;
-    }
+      const userResult = handleUserRouter(req, res);
+      if (userResult) {
+        userResult.then((userData) => {
+          if (needSetCookie) {
+            res.setHeader(
+              'Set-Cookie',
+              `userid=${userId}; path=/; httpOnly; expires=${getCookieExpires()}`
+            );
+          }
+          return res.end(JSON.stringify(userData));
+        });
 
-    res.writeHead(404, { 'Content-type': 'text/plan' });
-    res.write('404 not found');
-  });
+        return;
+      }
+
+      res.writeHead(404, { 'Content-type': 'text/plan' });
+      res.write('404 not found');
+      res.end();
+    });
 };
 
 module.exports = serverHandle;
