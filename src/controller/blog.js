@@ -1,12 +1,12 @@
-const { exec } = require('../db/mysql');
+const { exec, escape } = require('../db/mysql');
 
 const getList = (author, keyword) => {
   let sql = `select * from blogs where 1=1 `;
   if (author) {
-    sql += `and author='${author}' `;
+    sql += `and author=${escape(author)} `;
   }
   if (keyword) {
-    sql += `and title like '%${keyword}%' `;
+    sql += `and title like ${escape(`%${keyword}%`)} `;
   }
   sql += `order by createtime desc`;
 
@@ -24,7 +24,9 @@ const newBlog = (blogData = {}) => {
   const createtime = Date.now();
   const sql = `
         insert blogs (title, content, createtime, author) 
-        values ('${title}', '${content}', '${createtime}', '${author}')
+        values (${escape(title)}, ${escape(content)}, ${createtime}', ${escape(
+    author
+  )}')
         `;
 
   return exec(sql).then((insertData) => {
@@ -37,7 +39,7 @@ const newBlog = (blogData = {}) => {
 const updateBlog = (id, blogData = {}) => {
   const { title, content } = blogData;
   const sql = `
-          update blogs set title='${title}', content='${content}' 
+          update blogs set title=${escape(title)}, content=${escape(content)} 
           where id=${id}
           `;
 
