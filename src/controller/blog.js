@@ -1,3 +1,5 @@
+const xss = require('xss');
+
 const { exec, escape } = require('../db/mysql');
 
 const getList = (author, keyword) => {
@@ -22,12 +24,9 @@ const getDetail = (id) => {
 const newBlog = (blogData = {}) => {
   const { title, content, author } = blogData;
   const createtime = Date.now();
-  const sql = `
-        insert blogs (title, content, createtime, author) 
-        values (${escape(title)}, ${escape(content)}, ${createtime}', ${escape(
-    author
-  )}')
-        `;
+  const sql = `insert blogs (title, content, createtime, author) values (${escape(
+    xss(title)
+  )}, ${escape(xss(content))}, ${createtime}', ${escape(author)}')`;
 
   return exec(sql).then((insertData) => {
     return {
@@ -38,10 +37,9 @@ const newBlog = (blogData = {}) => {
 
 const updateBlog = (id, blogData = {}) => {
   const { title, content } = blogData;
-  const sql = `
-          update blogs set title=${escape(title)}, content=${escape(content)} 
-          where id=${id}
-          `;
+  const sql = `update blogs set title=${escape(xss(title))}, content=${escape(
+    xss(content)
+  )} where id=${id}`;
 
   return exec(sql).then((updateData) => {
     if (updateData.affectedRows > 0) {
@@ -52,9 +50,7 @@ const updateBlog = (id, blogData = {}) => {
 };
 
 const deleteBlog = (id, author) => {
-  const sql = `
-            delete from blogs where id=${id} and author='${author}'
-            `;
+  const sql = `delete from blogs where id=${id} and author='${author}'`;
 
   return exec(sql).then((deleteData) => {
     if (deleteData.affectedRows > 0) {
